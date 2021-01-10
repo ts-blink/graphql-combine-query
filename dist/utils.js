@@ -18,7 +18,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.renameVariables = exports.renameVariablesAndTopLevelFields = exports.renameVariablesAndTopLevelFieldsOnOpDef = exports.renameSelectionSetArguments = exports.renameVariableDefinition = exports.renameDirectiveArguments = exports.renameArgument = exports.renameValue = exports.defaultRenameFn = void 0;
+exports.removeDuplicateCommonVariables = exports.renameVariables = exports.renameVariablesAndTopLevelFields = exports.renameVariablesAndTopLevelFieldsOnOpDef = exports.renameSelectionSetArguments = exports.renameVariableDefinition = exports.renameDirectiveArguments = exports.renameArgument = exports.renameValue = exports.defaultRenameFn = void 0;
 exports.defaultRenameFn = function (name, index) { return name + "_" + index; };
 function renameValue(node, renameFn) {
     if (node.kind === 'Variable') {
@@ -87,4 +87,22 @@ function renameVariables(variables, renameFn) {
     }, {});
 }
 exports.renameVariables = renameVariables;
+function removeDuplicateCommonVariables(variableDefinitions, commonVariables) {
+    var _a, _b;
+    if (!commonVariables || (commonVariables === null || commonVariables === void 0 ? void 0 : commonVariables.length) === 0)
+        return variableDefinitions;
+    var encounteredVariables = new Set();
+    var result = [];
+    for (var _i = 0, variableDefinitions_1 = variableDefinitions; _i < variableDefinitions_1.length; _i++) {
+        var variableDefinition = variableDefinitions_1[_i];
+        var variableValue = (_b = (_a = variableDefinition === null || variableDefinition === void 0 ? void 0 : variableDefinition.variable) === null || _a === void 0 ? void 0 : _a.name) === null || _b === void 0 ? void 0 : _b.value;
+        if (encounteredVariables.has(variableValue) && (commonVariables === null || commonVariables === void 0 ? void 0 : commonVariables.includes(variableValue))) {
+            continue;
+        }
+        encounteredVariables.add(variableValue);
+        result.push(variableDefinition);
+    }
+    return result;
+}
+exports.removeDuplicateCommonVariables = removeDuplicateCommonVariables;
 //# sourceMappingURL=utils.js.map

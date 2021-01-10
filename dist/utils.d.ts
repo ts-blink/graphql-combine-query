@@ -11,4 +11,5 @@ export declare function renameSelectionSetArguments(selectionSet: SelectionSetNo
 export declare function renameVariablesAndTopLevelFieldsOnOpDef(op: OperationDefinitionNode, variableRenameFn: RenameFn, fieldRenameFn: RenameFn): OperationDefinitionNode;
 export declare function renameVariablesAndTopLevelFields(doc: DocumentNode, variableRenameFn: RenameFn, fieldRenameFn: RenameFn): DocumentNode;
 export declare function renameVariables(variables: Record<string, any>, renameFn: RenameFn): Record<string, any>;
+export declare function removeDuplicateCommonVariables(variableDefinitions: VariableDefinitionNode[], commonVariables: string[]): VariableDefinitionNode[];
 //# sourceMappingURL=utils.d.ts.map

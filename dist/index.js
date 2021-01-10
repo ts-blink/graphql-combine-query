@@ -49,7 +49,7 @@ var CombinedQueryBuilderImpl = /** @class */ (function () {
         this.document = document;
         this.variables = variables;
     }
-    CombinedQueryBuilderImpl.prototype.add = function (document, variables) {
+    CombinedQueryBuilderImpl.prototype.add = function (document, variables, commonVariables) {
         var _this = this;
         var opDefs = this.document.definitions.concat(document.definitions).filter(function (def) { return def.kind === 'OperationDefinition'; });
         if (!opDefs.length) {
@@ -79,7 +79,7 @@ var CombinedQueryBuilderImpl = /** @class */ (function () {
             (_b = def.variableDefinitions) === null || _b === void 0 ? void 0 : _b.forEach(function (variable) {
                 otherOpDefs.forEach(function (_def) { var _a; return (_a = _def.variableDefinitions) === null || _a === void 0 ? void 0 : _a.forEach(function (_variable) {
                     var _a, _b;
-                    if (variable.variable.name.value === _variable.variable.name.value) {
+                    if (variable.variable.name.value === _variable.variable.name.value && !(commonVariables === null || commonVariables === void 0 ? void 0 : commonVariables.includes(variable.variable.name.value))) {
                         throw new CombinedQueryError("duplicate variable definition " + _variable.variable.name.value + " for oprations " + ((_a = def.name) === null || _a === void 0 ? void 0 : _a.value) + " and " + ((_b = _def.name) === null || _b === void 0 ? void 0 : _b.value));
                     }
                 }); });
@@ -100,7 +100,7 @@ var CombinedQueryBuilderImpl = /** @class */ (function () {
                     kind: 'SelectionSet',
                     selections: opDefs.flatMap(function (def) { return def.selectionSet.selections; })
                 },
-                variableDefinitions: opDefs.flatMap(function (def) { return def.variableDefinitions || []; })
+                variableDefinitions: !!commonVariables ? utils_1.removeDuplicateCommonVariables(opDefs.flatMap(function (def) { return def.variableDefinitions || []; }), commonVariables) : opDefs.flatMap(function (def) { return def.variableDefinitions || []; })
             }];
         var encounteredFragmentList = new Set();
         var combinedDocumentDefinitions = this.document.definitions.concat(document.definitions);
@@ -123,16 +123,16 @@ var CombinedQueryBuilderImpl = /** @class */ (function () {
         };
         return new CombinedQueryBuilderImpl(this.operationName, newDoc, newVars);
     };
-    CombinedQueryBuilderImpl.prototype.addN = function (document, variables, variableRenameFn, fieldRenameFn) {
+    CombinedQueryBuilderImpl.prototype.addN = function (document, variables, variablesSkipRename, variableRenameFn, fieldRenameFn) {
         if (variableRenameFn === void 0) { variableRenameFn = utils_1.defaultRenameFn; }
         if (fieldRenameFn === void 0) { fieldRenameFn = utils_1.defaultRenameFn; }
         if (!variables.length) {
             return this;
         }
         return variables.reduce(function (builder, _variables, idx) {
-            var doc = utils_1.renameVariablesAndTopLevelFields(document, function (name) { return variableRenameFn(name, idx); }, function (name) { return fieldRenameFn(name, idx); });
-            var vars = utils_1.renameVariables(_variables, function (name) { return variableRenameFn(name, idx); });
-            return builder.add(doc, vars);
+            var doc = utils_1.renameVariablesAndTopLevelFields(document, function (name) { return variablesSkipRename.includes(name) ? name : variableRenameFn(name, idx); }, function (name) { return fieldRenameFn(name, idx); });
+            var vars = utils_1.renameVariables(_variables, function (name) { return variablesSkipRename.includes(name) ? name : variableRenameFn(name, idx); });
+            return builder.add(doc, vars, variablesSkipRename);
         }, this);
     };
     return CombinedQueryBuilderImpl;
@@ -143,8 +143,8 @@ function combinedQuery(operationName) {
         add: function (document, variables) {
             return new CombinedQueryBuilderImpl(this.operationName, document, variables);
         },
-        addN: function (document, variables, variableRenameFn, fieldRenameFn) {
-            return new CombinedQueryBuilderImpl(this.operationName, emptyDoc).addN(document, variables, variableRenameFn, fieldRenameFn);
+        addN: function (document, variables, variablesSkipRename, variableRenameFn, fieldRenameFn) {
+            return new CombinedQueryBuilderImpl(this.operationName, emptyDoc).addN(document, variables, variablesSkipRename, variableRenameFn, fieldRenameFn);
         }
     };
 }

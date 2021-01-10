@@ -13,7 +13,7 @@ This is a util to combine multiple graphql queries or mutations into a single on
 # Install
 
 ```sh
-npm install graphql-combine-query
+npm install ts-blink-graphql-combine-query
 ```
 # Usage / examples
 
@@ -24,7 +24,7 @@ create query builder with `combineQuery(newQueryName)` and use `.add(document, v
 argument list & top level selections are concatenated
 
 ```javascript
-import combineQuery from 'graphql-combine-query'
+import combineQuery from 'ts-blink-graphql-combine-query'
 
 import gql from 'graphql-tag'
 
@@ -118,6 +118,6 @@ mutation CompositeMutation($foo: foo_input!, $bar_id_0: Int!, $bar_0: bar_update
     updateBar_1: updateBar(where: {id: {_eq: $bar_id_1}}, _set: $bar_1) {
       id
     }
-  } 
+  }
 */
 ```

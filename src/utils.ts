@@ -76,7 +76,7 @@ export function renameSelectionSetArguments(selectionSet: SelectionSetNode, rena
             ...sel,
             directives: sel.directives?.map(dir => renameDirectiveArguments(dir, renameFn))
           }
-        case 'InlineFragment': 
+        case 'InlineFragment':
           return {
             ...sel,
             directives: sel.directives?.map(dir => renameDirectiveArguments(dir, renameFn)),
@@ -131,4 +131,19 @@ export function renameVariables(variables: Record<string, any>, renameFn: Rename
       [renameFn(key)]: variables[key]
     }
   }, {})
+}
+
+export function removeDuplicateCommonVariables(variableDefinitions:  VariableDefinitionNode[], commonVariables: string[]): VariableDefinitionNode[] {
+  if(!commonVariables || commonVariables?.length === 0) return variableDefinitions;
+  const encounteredVariables = new Set();
+  const result: VariableDefinitionNode[] = [];
+  for (const variableDefinition of variableDefinitions) {
+    const variableValue: string = variableDefinition?.variable?.name?.value;
+    if(encounteredVariables.has(variableValue) && commonVariables?.includes(variableValue)) {
+      continue;
+    }
+    encounteredVariables.add(variableValue);
+    result.push(variableDefinition);
+  }
+  return result;
 }
