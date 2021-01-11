@@ -89,7 +89,7 @@ function renameVariables(variables, renameFn) {
 exports.renameVariables = renameVariables;
 function removeDuplicateCommonVariables(variableDefinitions, commonVariables) {
     var _a, _b;
-    if (!commonVariables || (commonVariables === null || commonVariables === void 0 ? void 0 : commonVariables.length) === 0)
+    if (!commonVariables || !(commonVariables === null || commonVariables === void 0 ? void 0 : commonVariables.length))
         return variableDefinitions;
     var encounteredVariables = new Set();
     var result = [];

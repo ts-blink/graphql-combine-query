@@ -134,7 +134,7 @@ export function renameVariables(variables: Record<string, any>, renameFn: Rename
 }
 
 export function removeDuplicateCommonVariables(variableDefinitions:  VariableDefinitionNode[], commonVariables: string[]): VariableDefinitionNode[] {
-  if(!commonVariables || commonVariables?.length === 0) return variableDefinitions;
+  if(!commonVariables || !commonVariables?.length) return variableDefinitions;
   const encounteredVariables = new Set();
   const result: VariableDefinitionNode[] = [];
   for (const variableDefinition of variableDefinitions) {
