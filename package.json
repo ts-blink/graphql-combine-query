@@ -1,5 +1,5 @@
 {
-  "name": "graphql-combine-query",
+  "name": "ts-blink-graphql-combine-query",
   "version": "1.2.3",
   "description": "combine graphql query documents",
   "keywords": [
@@ -16,10 +16,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/domasx2/graphql-combine-query.git"
+    "url": "git://github.com/ts-blink/graphql-combine-query.git"
   },
   "bugs": {
-    "url": "https://github.com/domasx2/graphql-combine-query/issues"
+    "url": "https://github.com/ts-blink/graphql-combine-query/issues"
   },
   "scripts": {
     "prepublish": "tsc",

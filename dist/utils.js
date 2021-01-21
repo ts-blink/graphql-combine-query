@@ -18,7 +18,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.renameVariables = exports.renameVariablesAndTopLevelFields = exports.renameVariablesAndTopLevelFieldsOnOpDef = exports.renameSelectionSetArguments = exports.renameVariableDefinition = exports.renameDirectiveArguments = exports.renameArgument = exports.renameValue = exports.defaultRenameFn = void 0;
+exports.removeFragmentSpreadsFromSelection = exports.renameVariables = exports.renameVariablesAndTopLevelFields = exports.renameVariablesAndTopLevelFieldsOnOpDef = exports.renameSelectionSetArguments = exports.renameVariableDefinition = exports.renameDirectiveArguments = exports.renameArgument = exports.renameValue = exports.defaultRenameFn = void 0;
 exports.defaultRenameFn = function (name, index) { return name + "_" + index; };
 function renameValue(node, renameFn) {
     if (node.kind === 'Variable') {
@@ -87,4 +87,19 @@ function renameVariables(variables, renameFn) {
     }, {});
 }
 exports.renameVariables = renameVariables;
+function removeFragmentSpreadsFromSelection(selectionList) {
+    return selectionList === null || selectionList === void 0 ? void 0 : selectionList.filter(function (selection) {
+        var _a, _b;
+        if (selection.kind === 'FragmentSpread')
+            return false;
+        if ((_a = selection === null || selection === void 0 ? void 0 : selection.selectionSet) === null || _a === void 0 ? void 0 : _a.selections) {
+            var result = removeFragmentSpreadsFromSelection((_b = selection === null || selection === void 0 ? void 0 : selection.selectionSet) === null || _b === void 0 ? void 0 : _b.selections);
+            if (!result || !result.length)
+                return false;
+            selection.selectionSet.selections = result;
+        }
+        return true;
+    });
+}
+exports.removeFragmentSpreadsFromSelection = removeFragmentSpreadsFromSelection;
 //# sourceMappingURL=utils.js.map

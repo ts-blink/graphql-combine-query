@@ -1,8 +1,12 @@
 import { SelectionSetNode } from 'graphql'
-import { ArgumentNode, DirectiveNode, OperationDefinitionNode, VariableDefinitionNode, DocumentNode, DefinitionNode, ValueNode } from 'graphql/language'
+import { ArgumentNode, DirectiveNode, OperationDefinitionNode, VariableDefinitionNode, DocumentNode, DefinitionNode, ValueNode, SelectionNode } from 'graphql/language'
 
 export type RenameFn = (name: string) => string
 export type RenameFnWithIndex  = (name: string, index: number) => string
+export type RemoveFromSelectionSetInput  = {
+  name: string;
+  kind: 'Field'|'FragmentSpread'|'InlineFragment';
+}
 export const defaultRenameFn: RenameFnWithIndex = (name, index) => `${name}_${index}`
 
 export function renameValue(node: ValueNode, renameFn: RenameFn): ValueNode {
@@ -76,7 +80,7 @@ export function renameSelectionSetArguments(selectionSet: SelectionSetNode, rena
             ...sel,
             directives: sel.directives?.map(dir => renameDirectiveArguments(dir, renameFn))
           }
-        case 'InlineFragment': 
+        case 'InlineFragment':
           return {
             ...sel,
             directives: sel.directives?.map(dir => renameDirectiveArguments(dir, renameFn)),
@@ -131,4 +135,22 @@ export function renameVariables(variables: Record<string, any>, renameFn: Rename
       [renameFn(key)]: variables[key]
     }
   }, {})
+}
+
+export function removeNonEssentialFieldsFromSelection(selectionList :SelectionNode[]): SelectionNode[] {
+  return selectionList?.filter((selection) => {
+    if(selection.kind === 'FragmentSpread') return false;
+    if(selection?.selectionSet?.selections) {
+        const result = removeNonEssentialFieldsFromSelection(selection?.selectionSet?.selections as SelectionNode[])
+        if(!result || !result.length) return false;
+        selection.selectionSet.selections = result;
+    }
+    return true;
+  });
+}
+
+export function removeItemsFromSelectionSet(selectionList :SelectionNode[], itemToRemoveFromSelectionSet: RemoveFromSelectionSetInput[]): SelectionNode[] {
+  return selectionList?.filter((selection) => {
+    if(itemToRemoveFromSelectionSet?.find((item) => item.kind === selection.kind && item.name === selection.name.value))
+  });
 }

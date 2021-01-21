@@ -1,5 +1,5 @@
-import { DocumentNode, OperationDefinitionNode, DefinitionNode, FieldNode } from 'graphql'
-import { renameVariablesAndTopLevelFields, RenameFnWithIndex, defaultRenameFn, renameVariables } from './utils'
+import { DocumentNode, OperationDefinitionNode, DefinitionNode, FieldNode, SelectionNode } from 'graphql'
+import { renameVariablesAndTopLevelFields, RenameFnWithIndex, defaultRenameFn, renameVariables, removeItemsFromSelectionSet, RemoveFromSelectionSetInput } from './utils'
 
 type OperationVariables = Record<string, any>
 
@@ -11,14 +11,14 @@ const emptyDoc: DocumentNode = {
 export interface NewCombinedQueryBuilder {
   operationName: string,
   add: <TData = any, TVariables = OperationVariables>(document: DocumentNode, variables?: TVariables) => CombinedQueryBuilder<TData, TVariables>
-  addN: <TVariables = OperationVariables>(document: DocumentNode, variables: TVariables[], variableRenameFn?: RenameFnWithIndex, fieldRenameFn?: RenameFnWithIndex ) => CombinedQueryBuilder<{}, {}>
+  addN: <TVariables = OperationVariables>(document: DocumentNode, variables: TVariables[], removeFromSelectionSetExceptLastRequest?: RemoveFromSelectionSetInput[], variableRenameFn?: RenameFnWithIndex, fieldRenameFn?: RenameFnWithIndex ) => CombinedQueryBuilder<{}, {}>
 }
 
 export interface CombinedQueryBuilder<TData = any, TVariables extends OperationVariables = {}> {
   document: DocumentNode,
   variables?: TVariables,
-  add: <TDataAdd = any, TVariablesAdd = OperationVariables>(document: DocumentNode, variables?: TVariablesAdd) => CombinedQueryBuilder<TData & TDataAdd, TVariables & TVariablesAdd>
-  addN: <TVariablesAdd = OperationVariables>(document: DocumentNode, variables: TVariablesAdd[], variableRenameFn?: RenameFnWithIndex, fieldRenameFn?: RenameFnWithIndex) => CombinedQueryBuilder<TData, TVariables>
+  add: <TDataAdd = any, TVariablesAdd = OperationVariables>(document: DocumentNode, variables?: TVariablesAdd, itemsToRemoveFromSelectionSet?: RemoveFromSelectionSetInput[]) => CombinedQueryBuilder<TData & TDataAdd, TVariables & TVariablesAdd>
+  addN: <TVariablesAdd = OperationVariables>(document: DocumentNode, variables: TVariablesAdd[], removeFromSelectionSetExceptLastRequest?: RemoveFromSelectionSetInput[], variableRenameFn?: RenameFnWithIndex, fieldRenameFn?: RenameFnWithIndex) => CombinedQueryBuilder<TData, TVariables>
 }
 
 class CombinedQueryError extends Error {}
@@ -33,7 +33,7 @@ class CombinedQueryBuilderImpl<TData = any, TVariables = OperationVariables> imp
     this.variables = variables
   }
 
-  add<TDataAdd = any, TVariablesAdd = OperationVariables>(document: DocumentNode, variables?: TVariablesAdd): CombinedQueryBuilder<TData & TDataAdd, TVariables & TVariablesAdd> {
+  add<TDataAdd = any, TVariablesAdd = OperationVariables>(document: DocumentNode, variables?: TVariablesAdd, itemsToRemoveFromSelectionSet?: RemoveFromSelectionSetInput[]): CombinedQueryBuilder<TData & TDataAdd, TVariables & TVariablesAdd> {
 
     const opDefs = this.document.definitions.concat(document.definitions).filter((def: DefinitionNode): def is OperationDefinitionNode => def.kind === 'OperationDefinition')
     if (!opDefs.length) {
@@ -88,7 +88,7 @@ class CombinedQueryBuilderImpl<TData = any, TVariables = OperationVariables> imp
       operation: opDefs[0].operation,
       selectionSet: {
         kind: 'SelectionSet',
-        selections: opDefs.flatMap(def => def.selectionSet.selections)
+        selections: opDefs.flatMap(def => (itemsToRemoveFromSelectionSet && itemsToRemoveFromSelectionSet.length) ? removeItemsFromSelectionSet(def.selectionSet.selections as SelectionNode[], itemsToRemoveFromSelectionSet) : def.selectionSet.selections)
       },
       variableDefinitions: opDefs.flatMap(def => def.variableDefinitions || [])
     }]
@@ -115,14 +115,14 @@ class CombinedQueryBuilderImpl<TData = any, TVariables = OperationVariables> imp
     return new CombinedQueryBuilderImpl<TData & TDataAdd, TVariables & TVariablesAdd>(this.operationName, newDoc, newVars)
   }
 
-  addN<TVariablesAdd = OperationVariables>(document: DocumentNode, variables: TVariablesAdd[], variableRenameFn: RenameFnWithIndex = defaultRenameFn, fieldRenameFn: RenameFnWithIndex = defaultRenameFn): CombinedQueryBuilder<TData, TVariables> {
+  addN<TVariablesAdd = OperationVariables>(document: DocumentNode, variables: TVariablesAdd[], removeFromSelectionSetExceptLastRequest?: RemoveFromSelectionSetInput[], variableRenameFn: RenameFnWithIndex = defaultRenameFn, fieldRenameFn: RenameFnWithIndex = defaultRenameFn): CombinedQueryBuilder<TData, TVariables> {
     if (!variables.length) {
       return this
     }
     return variables.reduce<CombinedQueryBuilder<unknown, TVariables & OperationVariables>>((builder, _variables, idx): CombinedQueryBuilder<unknown, TVariables & OperationVariables> => {
       const doc = renameVariablesAndTopLevelFields(document, name => variableRenameFn(name, idx), name => fieldRenameFn(name, idx))
       const vars = renameVariables(_variables, name => variableRenameFn(name, idx))
-      return builder.add(doc, vars as any)
+      return builder.add(doc, vars as any, idx < (variables?.length - 1) ? removeFromSelectionSetExceptLastRequest : undefined)
     }, this)
   }
 }
@@ -133,8 +133,8 @@ export default function combinedQuery(operationName: string): NewCombinedQueryBu
     add<TData = any, TVariables extends OperationVariables={}>(document: DocumentNode, variables?: TVariables ) {
       return new CombinedQueryBuilderImpl<TData, TVariables>(this.operationName, document, variables)
     },
-    addN<TVariables = OperationVariables>(document: DocumentNode, variables: TVariables[], variableRenameFn?: RenameFnWithIndex, fieldRenameFn?: RenameFnWithIndex): CombinedQueryBuilder<{}, {}> {
-      return new CombinedQueryBuilderImpl<{}, {}>(this.operationName,  emptyDoc).addN<TVariables>(document, variables, variableRenameFn, fieldRenameFn)
+    addN<TVariables = OperationVariables>(document: DocumentNode, variables: TVariables[], removeFromSelectionSetExceptLastRequest?: RemoveFromSelectionSetInput[], variableRenameFn?: RenameFnWithIndex, fieldRenameFn?: RenameFnWithIndex): CombinedQueryBuilder<{}, {}> {
+      return new CombinedQueryBuilderImpl<{}, {}>(this.operationName,  emptyDoc).addN<TVariables>(document, variables, removeFromSelectionSetExceptLastRequest, variableRenameFn, fieldRenameFn)
     }
   }
 }
